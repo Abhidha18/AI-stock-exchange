@@ -1,35 +1,43 @@
 #include "orderbook.h"
+#include <iostream>
 #include <stdexcept>
+using namespace std;
 void OrderBook::addOrder(const Order& order)
 {
     if (order.isBuy)
     {
-        buyOrders.push_back(order);
+        buyOrders.push(order);
     }
     else
     {
-        sellOrders.push_back(order);
+        sellOrders.push(order);
     }
 }
 void OrderBook::printOrderBook()
 {
-    cout << "Buy Orders:" << endl;
-    for (const auto& order : buyOrders)
+    if(hasBuyOrders())
     {
-        cout << "ID: " << order.id
-             << ", Stock: " << order.stockSymbol
-             << ", Quantity: " << order.quantity
-             << ", Price: " << order.price
+        Order buy = buyOrders.top();
+
+        cout << "Best Buy Order\n";
+        cout << buy.stockSymbol
+             << " "
+             << buy.quantity
+             << " @ "
+             << buy.price
              << endl;
     }
 
-    cout << "Sell Orders:" << endl;
-    for (const auto& order : sellOrders)
+    if(hasSellOrders())
     {
-        cout << "ID: " << order.id
-             << ", Stock: " << order.stockSymbol
-             << ", Quantity: " << order.quantity
-             << ", Price: " << order.price
+        Order sell = sellOrders.top();
+
+        cout << "Best Sell Order\n";
+        cout << sell.stockSymbol
+             << " "
+             << sell.quantity
+             << " @ "
+             << sell.price
              << endl;
     }
 }

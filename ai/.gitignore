@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+*.exe
+node_modules/
+dist/
+vectorstore/
