@@ -63,16 +63,12 @@ int main()
     orderManager.addOrder(order4);
 
     MatchingEngine relianceEngine(
-        orderManager.getOrderBook(
-            "RELIANCE"
-        ),
+        orderManager.getOrderBook("RELIANCE"),
         tradeHistory
     );
 
     MatchingEngine tcsEngine(
-        orderManager.getOrderBook(
-            "TCS"
-        ),
+        orderManager.getOrderBook("TCS"),
         tradeHistory
     );
 
@@ -85,6 +81,7 @@ int main()
     tcsEngine.matchOrders();
 
     tradeHistory.printTrades();
+
     tradeHistory.exportToCSV();
 
     MarketAnalytics analytics(

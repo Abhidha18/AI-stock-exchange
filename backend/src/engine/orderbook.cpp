@@ -84,3 +84,33 @@ void OrderBook::removeBestSell()
         sellOrders.pop();
     }
 }
+
+std::vector<Order> OrderBook::getAllBuyOrders()
+{
+    auto temp = buyOrders;
+
+    std::vector<Order> orders;
+
+    while(!temp.empty())
+    {
+        orders.push_back(temp.top());
+        temp.pop();
+    }
+
+    return orders;
+}
+
+std::vector<Order> OrderBook::getAllSellOrders()
+{
+    auto temp = sellOrders;
+
+    std::vector<Order> orders;
+
+    while(!temp.empty())
+    {
+        orders.push_back(temp.top());
+        temp.pop();
+    }
+
+    return orders;
+}

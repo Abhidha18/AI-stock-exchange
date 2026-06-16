@@ -45,6 +45,9 @@ public:
     Order getBestBuy();
     Order getBestSell();
 
+    std::vector<Order> getAllBuyOrders();
+    std::vector<Order> getAllSellOrders();
+
     void removeBestBuy();
     void removeBestSell();
 };

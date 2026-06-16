@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
+import csv
+import subprocess
+
 app = FastAPI()
 
 app.add_middleware(
@@ -13,7 +16,26 @@ app.add_middleware(
 )
 
 # ---------------------------
-# ORDER MODEL
+# IN-MEMORY ORDER BOOK
+# ---------------------------
+
+orders_db = {
+    "RELIANCE": {
+        "buy": [],
+        "sell": []
+    },
+    "TCS": {
+        "buy": [],
+        "sell": []
+    },
+    "INFY": {
+        "buy": [],
+        "sell": []
+    }
+}
+
+# ---------------------------
+# MODELS
 # ---------------------------
 
 class OrderRequest(BaseModel):
@@ -22,85 +44,188 @@ class OrderRequest(BaseModel):
     price: float
     isBuy: bool
 
-# ---------------------------
-# CHAT MODEL
-# ---------------------------
 
 class QuestionRequest(BaseModel):
     question: str
 
+
 # ---------------------------
-# GET ORDERS
+# ORDERS
 # ---------------------------
 
 @app.get("/orders")
 def get_orders():
-    return {
-        "RELIANCE": {
-            "buy": [
-                {
-                    "id": 1,
-                    "stockSymbol": "RELIANCE",
-                    "quantity": 100,
-                    "price": 2500,
-                    "isBuy": True
-                }
-            ],
-            "sell": [
-                {
-                    "id": 2,
-                    "stockSymbol": "RELIANCE",
-                    "quantity": 40,
-                    "price": 2490,
-                    "isBuy": False
-                }
-            ]
-        }
-    }
+    return orders_db
 
-# ---------------------------
-# GET TRADES
-# ---------------------------
-
-@app.get("/trades")
-def get_trades():
-    return [
-        {
-            "buyOrderId": 1,
-            "sellOrderId": 2,
-            "stockSymbol": "RELIANCE",
-            "quantity": 40,
-            "price": 2500,
-            "timestamp": "2026-06-07T10:00:00"
-        }
-    ]
-
-# ---------------------------
-# GET ANALYTICS
-# ---------------------------
-
-@app.get("/analytics")
-def get_analytics():
-    return {
-        "total_trades": 999,
-        "total_volume": 888,
-        "average_price": 777,
-        "stocks_tracked": 666
-    }
-
-# ---------------------------
-# PLACE ORDER
-# ---------------------------
 
 @app.post("/order")
 def place_order(order: OrderRequest):
 
-    print("Received Order:")
-    print(order)
+    if order.stockSymbol not in orders_db:
+
+        orders_db[order.stockSymbol] = {
+            "buy": [],
+            "sell": []
+        }
+
+    new_order = {
+        "id": len(
+            orders_db[order.stockSymbol]["buy"]
+        ) + len(
+            orders_db[order.stockSymbol]["sell"]
+        ) + 1,
+
+        "stockSymbol": order.stockSymbol,
+        "quantity": order.quantity,
+        "price": order.price,
+        "isBuy": order.isBuy
+    }
+
+    if order.isBuy:
+
+        orders_db[
+            order.stockSymbol
+        ]["buy"].append(
+            new_order
+        )
+
+    else:
+
+        orders_db[
+            order.stockSymbol
+        ]["sell"].append(
+            new_order
+        )
 
     return {
-        "message": "Order received"
+        "message": "Order Added Successfully"
     }
+
+
+# ---------------------------
+# TRADES
+# ---------------------------
+
+@app.get("/trades")
+def get_trades():
+
+    trades = []
+
+    try:
+
+        with open(
+            "../../backend/database/trades.csv",
+            "r"
+        ) as file:
+
+            reader = csv.DictReader(file)
+
+            for row in reader:
+
+                trades.append({
+                    "buyOrderId": int(
+                        row["BuyOrderID"]
+                    ),
+                    "sellOrderId": int(
+                        row["SellOrderID"]
+                    ),
+                    "stockSymbol": row["Stock"],
+                    "quantity": int(
+                        row["Quantity"]
+                    ),
+                    "price": float(
+                        row["Price"]
+                    ),
+                    "timestamp": row["Timestamp"]
+                })
+
+    except Exception as e:
+
+        print(e)
+
+    return trades
+
+
+# ---------------------------
+# ANALYTICS
+# ---------------------------
+
+@app.get("/analytics")
+def get_analytics():
+
+    total_trades = 0
+    total_volume = 0
+    total_price = 0
+
+    stocks = set()
+
+    volume_by_stock = {}
+
+    try:
+
+        with open(
+            "../../backend/database/trades.csv",
+            "r"
+        ) as file:
+
+            reader = csv.DictReader(file)
+
+            for row in reader:
+
+                total_trades += 1
+
+                stock = row["Stock"]
+
+                qty = int(
+                    row["Quantity"]
+                )
+
+                price = float(
+                    row["Price"]
+                )
+
+                total_volume += qty
+
+                total_price += price
+
+                stocks.add(stock)
+
+                if stock not in volume_by_stock:
+
+                    volume_by_stock[
+                        stock
+                    ] = 0
+
+                volume_by_stock[
+                    stock
+                ] += qty
+
+    except Exception as e:
+
+        print(e)
+
+    average_price = (
+        total_price / total_trades
+        if total_trades > 0
+        else 0
+    )
+
+    return {
+        "total_trades": total_trades,
+        "total_volume": total_volume,
+        "average_price": average_price,
+        "stocks_tracked": len(stocks),
+
+        "volume_by_stock": [
+            {
+                "stock": stock,
+                "volume": volume
+            }
+            for stock, volume
+            in volume_by_stock.items()
+        ]
+    }
+
 
 # ---------------------------
 # AI CHAT
@@ -108,8 +233,6 @@ def place_order(order: OrderRequest):
 
 @app.post("/ask")
 def ask_ai(request: QuestionRequest):
-
-    import subprocess
 
     result = subprocess.run(
         [
@@ -121,12 +244,6 @@ def ask_ai(request: QuestionRequest):
         text=True
     )
 
-    print("STDOUT:")
-    print(result.stdout)
-
-    print("STDERR:")
-    print(result.stderr)
-
     return {
-        "answer": result.stdout
+        "answer": result.stdout.strip()
     }

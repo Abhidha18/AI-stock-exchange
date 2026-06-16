@@ -925,7 +925,7 @@ function TradeHistory({ trades }) {
             </tr>
           </thead>
           <tbody>
-            {filtered?.map((t, i) => (
+            {filtered?.slice(0, 500).map((t, i) => (
               <tr key={i} className="tbl-row"
                 style={{ borderBottom: "1px solid rgba(255,255,255,0.028)" }}>
                 <td style={{ padding: "12px 18px", fontSize: 11, color: "var(--green)",
